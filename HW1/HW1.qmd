@@ -1,0 +1,173 @@
+---
+title: "Untitled"
+format: pdf
+---
+
+# STA 243: Homework 1
+
+**Due:** 04/20/2026 at 10PM on Gradescope
+
+------------------------------------------------------------------------
+
+## Question 1 \[10 points\] — Operator Norm
+
+Recall that the operator norm of $M \in \mathbb{R}^{m \times n}$ is defined as
+
+$$\|M\|_{\text{op}} := \max \left\{ \|Mx\|_2 : \|x\|_2 = 1 \right\}$$
+
+where, for a vector $x \in \mathbb{R}^n$, $\|x\|_2 \equiv \left(\sum_{i=1}^n x_i^2\right)^{1/2}$. The objective of this exercise is to derive various properties of the operator norm from this definition.
+
+**(a)** Prove that the operator norm admits the following two alternative characterizations:
+
+$$\|M\|_{\text{op}} = \max \left\{ \langle x, My \rangle : \|x\|_2 = \|y\|_2 = 1 \right\} = \sigma_1(M),$$
+
+where $\sigma_1(M) \geq \sigma_2(M) \geq \cdots \geq \sigma_n(M)$ are the singular values of $M$.
+
+**(b)** Prove that $\|M\|_{\text{op}} = \|M^\top\|_{\text{op}}$ and $\|AB\|_{\text{op}} \leq \|A\|_{\text{op}} \|B\|_{\text{op}}$.
+
+**(c)** Prove that $\|\cdot\|_{\text{op}}$ is indeed a norm, i.e., that it enjoys the following properties:
+
+1.  $\|aM\|_{\text{op}} = |a| \|M\|_{\text{op}}$ for any scalar $a \in \mathbb{R}$
+2.  $\|A + B\|_{\text{op}} \leq \|A\|_{\text{op}} + \|B\|_{\text{op}}$
+3.  If $\|M\|_{\text{op}} = 0$, then $M = 0$
+
+------------------------------------------------------------------------
+
+## Question 2 \[10 points\] — Variance Calculation
+
+Show how you can go from Equation (2) to Equation (3) in the variance calculation on slide 20 of the `RandLA.pdf` slides.
+
+To show that:
+
+$$
+\sum_{i,j} \text{Var} [M_{i,j}]= \frac{1}{r} \sum_k \sum_{i,j} \frac{A_{i,k}^2 B_{k,j}^2}{p_k} - \frac{1}{r} \sum_{i,j} (A_{i,:} B_{:,j})^2
+$$
+
+We can begin entrywise with $\text{Var} (M_{i,j})$
+
+$$
+\text{Var} (M_{i,j}) = \mathbb{E} [(M_{i,j} - A_{i,:} B_{:,j} )^2] = \mathbb{E} (M_{i,j}^2) - \mathbb{E} (M_{i,j})^2
+$$
+
+where
+
+$$
+\mathbb{E}[M_{i,j}] = A_{i,:} B_{:,j}
+$$
+
+and it follows from $M_{i,j} = \frac{1}{r} \sum^r_k \frac{A_{i,k} B_{k,j}}{p_k}$ that $M_{i,j}$ is an average of iid terms, so the 
+
+$$
+\mathbb{E} [M_{i,j}^2] = \mathbb{E} [M_{i,j}]^2 + \text{Var} [M_{i,j}] = ( A_{i,:} B_{:,j})^2 + \frac{1}{r} \text{Var}[\frac{A_{i,k} B_{k,j}}{p_k}] 
+$$ 
+
+$$
+= ( A_{i,:} B_{:,j})^2 + \frac{1}{r} \left[ \mathbb{E}[\frac{A_{i,k} B_{k,j}}{p_k}^2] - \mathbb{E} [\frac{A_{i,k} B_{k,j}}{p_k}]^2 \right] 
+$$
+
+$$
+= ( A_{i,:} B_{:,j})^2 + \frac{1}{r} \left[ \sum_k \frac{A_{i,k}^2 B_{k,j}^2}{p_k} - (A_{i,k} B_{k,j})^2 \right]
+$$
+
+
+$$
+= \frac{1}{r} \sum_k \frac{A_{i,k}^2 B_{k,j}^2}{p_k} + \frac{r-1}{r}(A_{i,:} B_{:,j})^2 
+$$
+
+So we have
+
+$$
+\text{Var} (M_{i,j}) = \mathbb{E} (M_{i,j}^2) - \mathbb{E} (M_{i,j})^2 = \frac{1}{r} \sum_k \frac{A_{i,k}^2 B_{k,j}^2}{p_k} + \frac{r-1}{r}(A_{i,:} B_{:,j})^2 - (A_{i,:} B_{:,j})^2 
+$$
+
+$$
+= \frac{1}{r} \sum_k \frac{A_{i,k}^2 B_{k,j}^2}{p_k} - \frac{1}{r}(A_{i,:} B_{:,j})^2 
+$$
+
+Then we can simply sum across $i,j$, giving:
+
+$$
+\sum_{i,j} \text{Var} (M_{i,j}) = \sum_{i,j} \left[\frac{1}{r} \sum_k \frac{A_{i,k}^2 B_{k,j}^2}{p_k} - \frac{1}{r}(A_{i,:} B_{:,j})^2 \right]
+$$
+
+$$
+ = \frac{1}{r} \sum_{i,j} \sum_k \frac{A_{i,k}^2 B_{k,j}^2}{p_k} - \frac{1}{r} \sum_{i,j} (A_{i,:} B_{:,j})^2 
+$$
+
+------------------------------------------------------------------------
+
+## Question 3 \[10 points\] — Randomized Matrix Multiplication
+
+**(a)** Implement the algorithm presented in class for randomized matrix multiplication.
+
+```{python}
+import pandas as pd
+import numpy as np
+
+def load_data(path_A, path_B):
+    # code
+    A = pd.read_csv(path_A).to_numpy()
+    B = pd.read_csv(path_B).to_numpy()
+    return A, B
+
+A, B = load_data('HW1/A.csv', 'HW1/B.csv')
+
+def compute_prob(A,B, method):
+    #code
+    return p
+
+def random_mat_mult(A,B,r,p):
+    #code
+    return M
+
+def relative_error(M,A,B):
+    #code
+    return re
+
+def run_exp(A,B,r_vals,method):
+    #code 
+
+
+```
+
+**(b)** Apply the algorithm to the provided matrices selecting a number of columns $r \in \{20, 50, 100, 200\}$. The matrices for this problem can be found in the attached files `STA243_homework1_matrix_A.csv` and `STA243_homework1_matrix_B.csv`.
+
+**(c)** Calculate the relative approximation error
+
+$$\frac{\|M - AB\|_F}{\|A\|_F \|B\|_F}$$
+
+for each of the estimates found in (b). Provide your results in a table.
+
+------------------------------------------------------------------------
+
+## Question 4 \[10 points\] — Power Method
+
+Let $X$ be a $10 \times 10$ matrix such that
+
+$$X = \lambda (vv^\top) + E,$$
+
+where $E$ is a random matrix with each entry drawn i.i.d. from a standard Gaussian distribution. Note that $X$ is a rank-1 matrix perturbed with a random noise matrix $E$. Your goal is to estimate the eigenvector $v$.
+
+The file `power_sim.py` consists of a test routine that specifies the true eigenvector, the initial vector used for the power method, and the noise matrix. The end goal is to produce a plot of $\lambda$ versus how well the estimated eigenvector (using the power method) correlates with the true eigenvector (measured via inner product). To do this, you must implement your own power method (function `power_iteration`). Complete the code and run the test routine to produce the plot.
+
+------------------------------------------------------------------------
+
+## Question 5 \[10 points\] — Sketching for Least Squares
+
+**(a)** Implement the Sketched-OLS algorithm presented in class.
+
+**(b)** Generate a $1{,}048{,}576 \times 20$ design matrix $X$ and a $1{,}048{,}576 \times 1$ response vector $y$ with elements drawn i.i.d. from a $\text{Uniform}(0, 1)$ distribution.
+
+**(c)** Compare the computation time for the full least squares problem and the sketched OLS. For the sketching matrix $\Phi = S^\top HD$, first compute $X^* = \Phi X$ and $y^* = \Phi y$. Then use the `time` package in Python to time the calculation of
+
+$$(X_*^\top X_*)^{-1} X_*^\top y^*$$
+
+and compare it to the calculation time of
+
+$$(X^\top X)^{-1} X^\top y.$$
+
+Repeat these steps for $\varepsilon \in \{0.1, 0.05, 0.01, 0.001\}$ and present your results in a table.
+
+**(d)** Another popular approach to constructing the sketching matrix is via **leverage score sampling**, presented in Algorithm 7 of the course notes. Implement this algorithm, but to simplify, instead of calling the `FastApproximateLeverageScores` algorithm on Line 1, compute the exact leverage scores directly. The leverage score for observation $i$ is defined in Equations (62)–(63), and the importance sampling distribution is the vector of normalized leverage scores.
+
+After this preprocessing step, time the subsampling + rescaling + least-squares sub-solve together using the same matrix as in (c). Repeat for $\varepsilon \in \{0.1, 0.05, 0.01, 0.001\}$ and present your results in a table.
