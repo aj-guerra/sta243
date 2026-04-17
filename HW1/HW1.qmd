@@ -19,9 +19,93 @@ where, for a vector $x \in \mathbb{R}^n$, $\|x\|_2 \equiv \left(\sum_{i=1}^n x_i
 
 **(a)** Prove that the operator norm admits the following two alternative characterizations:
 
-$$\|M\|_{\text{op}} = \max \left\{ \langle x, My \rangle : \|x\|_2 = \|y\|_2 = 1 \right\} = \sigma_1(M),$$
+$$
+\|M\|_{\text{op}} = \max \left\{ \langle x, My \rangle : \|x\|_2 = \|y\|_2 = 1 \right\} = \sigma_1(M)
+$$
 
 where $\sigma_1(M) \geq \sigma_2(M) \geq \cdots \geq \sigma_n(M)$ are the singular values of $M$.
+
+### 1(a) first equivalence
+
+The first equivalence can be written as
+
+$$
+\max \left\{ \|My\|_2 : \|y\|_2 = 1 \right\} = \max \left\{ \langle x, My \rangle : \|x\|_2 = \|y\|_2 = 1 \right\}
+$$
+
+By Cauchy-Schwarz, and holding $\|x\|_2 = 1$ we have that 
+
+$$
+\langle x, My \rangle \leq \|x\|_2 \|My\|_2 = \|My\|_2 
+$$
+
+Since this holds for any unit $x$ and $y$, taking the max over both gives
+
+$$
+\max \left\{ \|My\|_2 : \|y\|_2 = 1 \right\} \geq \max \left\{ \langle x, My \rangle : \|x\|_2 = \|y\|_2 = 1 \right\}
+$$
+
+Then to show equality we can show the reverse inequality for a particular unit $x$, namely, the unit vector in the direction of $My$
+
+$$
+x^* = \frac{My}{\|My\|_2}
+$$
+
+Then,
+
+$$
+\langle x^*, My \rangle = \langle \frac{My}{\|My\|_2}, My \rangle = \frac{1}{\|My\|_2} \langle My, My \rangle = \|My\|_2
+$$
+
+Therefore we have the following for every unit $y$
+
+$$
+\max \left\{ \langle x, My \rangle : \|x\|_2 = \|y\|_2 = 1 \right\}  \geq \langle x^*, My \rangle = \|My\|_2
+$$
+
+And we have shown equality.
+
+### 1(b) second equivalence
+
+For the second equality, we can substitute the SVD of M
+
+$$
+\max \left\{ \langle x, U \Sigma V^\top y \rangle : \|x\|_2 = \|y\|_2 = 1 \right\} = \sigma_1(M) 
+$$
+
+$$
+= \max \left\{ \langle U^\top x, \Sigma V^\top y \rangle : \|x\|_2 = \|y\|_2 = 1 \right\}
+$$
+
+then because $U$ and $V$ are orthogonal matrices, we have that $\|U^\top x\|_2 = \|x\|_2$ and $\|V^\top y\|_2 = \|y\|_2$, so we can define $\tilde{x} = U^\top x$ and $\tilde{y} = V^\top y$, which are also unit vectors, giving
+$$
+= \max \left\{ \langle \tilde{x}, \Sigma \tilde{y} \rangle : \|\tilde{x}\|_2 = \|\tilde{y}\|_2 = 1 \right\}
+$$
+
+So it remains to show that
+$$
+= \max \left\{ \sum_i \sigma_i \tilde{x}_i \tilde{y}_i : \|\tilde{x}\|_2 = \|\tilde{y}\|_2 = 1 \right\}
+$$
+
+For the case where $\tilde{x} = \tilde{y} = e_1$, it is clear that $\sum_i = \sigma_1$. 
+
+Then again by Cauchy-Schwarz, we have 
+
+$$
+\langle \tilde{x}, \Sigma \tilde{y} \rangle \leq \|\tilde{x}\|_2 \|\Sigma \tilde{y}\|_2 = \|\Sigma \tilde{y}\|_2 
+$$
+
+$$
+\langle \tilde{x}, \Sigma \tilde{y} \rangle \leq \sqrt{\sum_i \sigma_i^2 \tilde{y}_i^2}
+$$
+
+Then because $\sigma_1 \geq \sigma_i$ for all $i$, we have
+
+$$
+\langle \tilde{x}, \Sigma \tilde{y} \rangle \leq \sqrt{\sum_i \sigma_1^2 \tilde{y}_i^2} = \sigma_1 \sqrt{\sum_i \tilde{y}_i^2} = \sigma_1
+$$
+
+Because we have shown this double inequality, we have equality as we have intended to show.
 
 **(b)** Prove that $\|M\|_{\text{op}} = \|M^\top\|_{\text{op}}$ and $\|AB\|_{\text{op}} \leq \|A\|_{\text{op}} \|B\|_{\text{op}}$.
 
@@ -103,40 +187,78 @@ $$
 ```{python}
 import pandas as pd
 import numpy as np
+from pyparsing import results
 
 def load_data(path_A, path_B):
     # code
-    A = pd.read_csv(path_A).to_numpy()
-    B = pd.read_csv(path_B).to_numpy()
+    A = pd.read_csv(path_A, header=None).to_numpy()
+    B = pd.read_csv(path_B, header=None).to_numpy()
     return A, B
-
-A, B = load_data('HW1/A.csv', 'HW1/B.csv')
 
 def compute_prob(A,B, method):
     #code
+    if method == "unif":
+        p = np.ones(A.shape[1]) / A.shape[1]
+    elif method == "nonunif":
+        p = np.linalg.norm(A, axis=0) * np.linalg.norm(B, axis=0)
+        p = p / np.sum(p)
+    else:
+        print("Invalid method. Please select either 'unif' or 'nonunif'.")
     return p
 
 def random_mat_mult(A,B,r,p):
-    #code
+    M = np.zeros((A.shape[0], B.shape[1]))
+    for l in range(r):
+        i_l = np.random.choice(A.shape[1], p=p)
+        M += (1/r*p[i_l]) * np.outer(A[:, i_l], B[i_l, :])
     return M
 
 def relative_error(M,A,B):
-    #code
+    re = np.linalg.norm(M - A @ B) / (np.linalg.norm(A) * np.linalg.norm(B))
     return re
 
 def run_exp(A,B,r_vals,method):
-    #code 
-
-
+        p = compute_prob(A,B, method=method)
+        results = []
+        for r in r_vals:
+            M = random_mat_mult(A,B,r,p)
+            re = relative_error(M,A,B)
+            results.append((r, re))
+        results = pd.DataFrame(results, columns=['r', 'relative_error'])
+        return results
 ```
 
 **(b)** Apply the algorithm to the provided matrices selecting a number of columns $r \in \{20, 50, 100, 200\}$. The matrices for this problem can be found in the attached files `STA243_homework1_matrix_A.csv` and `STA243_homework1_matrix_B.csv`.
+
+```{python}
+
+A, B = load_data('HW1/A.csv', 'HW1/B.csv')
+
+p = compute_prob(A,B, method='nonunif')
+
+M20 = random_mat_mult(A,B,r=20,p=p)
+
+M50 = random_mat_mult(A,B,r=50,p=p)
+
+M100 = random_mat_mult(A,B,r=100,p=p)
+
+M200 = random_mat_mult(A,B,r=200,p=p)
+
+```
 
 **(c)** Calculate the relative approximation error
 
 $$\frac{\|M - AB\|_F}{\|A\|_F \|B\|_F}$$
 
 for each of the estimates found in (b). Provide your results in a table.
+
+```{python}
+
+r_vals=[20, 50, 100, 200]
+
+run_exp(A,B,r_vals, method='nonunif')
+
+```
 
 ------------------------------------------------------------------------
 
@@ -150,13 +272,113 @@ where $E$ is a random matrix with each entry drawn i.i.d. from a standard Gaussi
 
 The file `power_sim.py` consists of a test routine that specifies the true eigenvector, the initial vector used for the power method, and the noise matrix. The end goal is to produce a plot of $\lambda$ versus how well the estimated eigenvector (using the power method) correlates with the true eigenvector (measured via inner product). To do this, you must implement your own power method (function `power_iteration`). Complete the code and run the test routine to produce the plot.
 
+```{python}
+import numpy as np
+import matplotlib.pyplot as plt
+
+def power_iteration(A, v0, eps = 1e-6, maxiter=100):
+    """
+    Please implement the function power_iteration that takes in the matrix X and initial vector v0 and returns the eigenvector.
+    A: np.array (d, d)
+    v0: np.array (d,)
+    """
+    c0 = v0
+    for t in range(maxiter):
+        c = A @ c0
+        c = c / np.linalg.norm(c, 2)
+        
+        if np.linalg.norm(c - c0, 2) < eps:
+            return c
+        c0 = c
+
+    return c
+
+if __name__ == '__main__':
+
+    np.random.seed(2022)
+    E = np.random.normal(size=(10,10))
+    v = np.array([1]+[0]*9)
+    lams = np.arange(1, 11)
+    prods = []
+    for lam in lams:
+        X = lam*np.outer(v,v) + E
+        v0 = np.ones(10)
+        v0 = v0/np.linalg.norm(v0,2)
+        vv = power_iteration(X, v0)
+        prods.append(np.abs(v @ vv))
+    
+    plt.plot(lams, prods, '-ok')
+    plt.xlabel('lambda')
+    plt.ylabel('product')
+    plt.show()
+
+
+
+```
+
 ------------------------------------------------------------------------
 
 ## Question 5 \[10 points\] — Sketching for Least Squares
 
 **(a)** Implement the Sketched-OLS algorithm presented in class.
 
+```{python}
+import scipy.linalg
+
+def fwht(a) -> None:
+    """
+    Fast Walsh–Hadamard Transform .
+    """
+    h = 1
+    while h < len(a):
+        for i in range(0, len(a), h * 2):
+            for j in range(i, i + h):
+                a[j], a[j + h] = a[j] + a[j + h], a[j] - a[j + h]
+        h *= 2
+
+def Transform(n, X, Y):
+        '''Store the results of HDX and HDY.'''
+        # Compute DX and DY. Since D is diagonal, we just perform matrix broadcast instead of multiplication.
+        D = (2 * np.round(np.random.rand(n), 0) - 1).reshape(-1, 1)
+        X_1 = D * X
+        Y_1 = D * Y
+
+        # Perform Fast Walsh–Hadamard Transform on DX/DY instead of D. Time complexity is therefore O(d*n*log(n)) otherwise it would be O(n^2*log(n)). Hence d=20, n=1048576 it is incridibale to doing this.
+        # May run out time if just using D
+        # Then divided by 1/sqrt(n) for normalization.
+        fwht(X_1)
+        fwht(Y_1)
+
+        HDX = X_1 / np.sqrt(n)
+        HDY = Y_1 / np.sqrt(n)
+
+        return HDX, HDY
+
+def sketch_OLS(X, Y, eps):
+    n = X.shape[0]
+    d = X.shape[1]
+    r = d * np.log(d) / eps
+    S = np.empty((0,0))
+
+    for t in range(round(r)):
+        i = np.random.choice(n)
+        ei = np.zeros(n)
+        ei[i] = 1
+        S = np.append(S, np.sqrt(n/r) * ei)
+    
+    Xs, ys = Transform(n, X, Y)
+
+    bs = np.linalg.inv(Xs.T.dot(Xs)).dot(Xs.T).dot(ys)
+    return bs
+
+```
+
 **(b)** Generate a $1{,}048{,}576 \times 20$ design matrix $X$ and a $1{,}048{,}576 \times 1$ response vector $y$ with elements drawn i.i.d. from a $\text{Uniform}(0, 1)$ distribution.
+
+```{python}
+X = np.random.uniform(0, 1, size=(1048576, 20))
+Y = np.random.uniform(0, 1, size=(1048576, 1))
+```
 
 **(c)** Compare the computation time for the full least squares problem and the sketched OLS. For the sketching matrix $\Phi = S^\top HD$, first compute $X^* = \Phi X$ and $y^* = \Phi y$. Then use the `time` package in Python to time the calculation of
 
@@ -167,6 +389,25 @@ and compare it to the calculation time of
 $$(X^\top X)^{-1} X^\top y.$$
 
 Repeat these steps for $\varepsilon \in \{0.1, 0.05, 0.01, 0.001\}$ and present your results in a table.
+
+```{python}
+import time
+eps = [0.1, 0.05, 0.01, 0.001]
+sketch_times = []
+full_times = []
+
+for e in eps:
+    start_time = time.time()
+    sketch_OLS(X, Y, e)
+    sketch_time = time.time() - start_time
+
+    start_time = time.time()
+    np.linalg.inv(X.T.dot(X)).dot(X.T).dot(Y)
+    full_time = time.time() - start_time
+
+    sketch_times.append(sketch_time)
+    full_times.append(full_time)
+```
 
 **(d)** Another popular approach to constructing the sketching matrix is via **leverage score sampling**, presented in Algorithm 7 of the course notes. Implement this algorithm, but to simplify, instead of calling the `FastApproximateLeverageScores` algorithm on Line 1, compute the exact leverage scores directly. The leverage score for observation $i$ is defined in Equations (62)–(63), and the importance sampling distribution is the vector of normalized leverage scores.
 
